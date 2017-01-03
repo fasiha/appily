@@ -3,7 +3,7 @@ import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
 import Html exposing (..)
 import Html.Attributes exposing (value, type_, placeholder)
 import Html.Events exposing (..)
--- import Http
+import Http
 
 import Dict exposing (Dict)
 
@@ -56,10 +56,10 @@ type alias Morpheme =
   , conjugationType: List String
   , position: Int
   , languageType : String
-  , initialSoundAlternationType: String
-  , initialSoundAlternationForm: String
-  , finalSoundAlternationType: String
-  , finalSoundFlternationForm: String
+  -- , initialSoundAlternationType: String
+  -- , initialSoundAlternationForm: String
+  -- , finalSoundAlternationType: String
+  -- , finalSoundFlternationForm: String
   }
 
 morphemeDecoder : Decoder Morpheme
@@ -77,22 +77,26 @@ morphemeDecoder =
     |> required "conjugation-type" (list string)
     |> required "position" int
     |> required "language-type" string
-    |> required "initial-sound-alternation-type" string
-    |> required "initial-sound-alternation-form" string
-    |> required "final-sound-alternation-type" string
-    |> required "final-sound-alternation-form" string
+    -- |> required "initial-sound-alternation-type" string
+    -- |> required "initial-sound-alternation-form" string
+    -- |> required "final-sound-alternation-type" string
+    -- |> required "final-sound-alternation-form" string
 
 type alias Morphemes = List Morpheme
+
+morphemesDecoder : Decoder Morphemes
+morphemesDecoder = list morphemeDecoder
 
 -- MODEL
 
 type alias Model =
   { raw : String
+  , morphemes : Morphemes
   }
 
-init : String -> (Model, Cmd Msg)
-init topic =
-  ( Model ""
+init : (Model, Cmd Msg)
+init =
+  ( Model "" []
   , Cmd.none
   )
 
@@ -101,13 +105,23 @@ init topic =
 type Msg
   = Raw String
   | Submit
-  -- | NewGif (Result Http.Error String)
+  | Parse (Result Http.Error Morphemes)
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Raw raw -> ({ model | raw = raw }, Cmd.none)
-    Submit -> ({model | raw = "Clicked!" }, Cmd.none)
+    Submit -> (model, sendToParse model.raw)
+    Parse (Ok morphemes) ->({ model | morphemes = morphemes}, Cmd.none)
+    Parse (Err err) -> ({ model | raw = "err" }, Cmd.none)
+
+
+sendToParse : String -> Cmd Msg
+sendToParse s =
+  let
+    url = "http://localhost:3600/parse/" ++ s
+  in
+    Http.send Parse (Http.get url (list morphemeDecoder))
 
 -- SUBS
 
@@ -120,7 +134,7 @@ subscriptions model =
 main : Program Never Model Msg
 main =
   Html.program
-    { init = init "cats"
+    { init = init
     , view = view
     , update = update
     , subscriptions = subscriptions
@@ -128,16 +142,19 @@ main =
 
 -- VIEW
 
-testNode : Html Msg
-testNode =
+testNode : Morphemes -> Html Msg
+testNode morphemes =
   div []
     [ div [] [text (toString k)]
     , div [] [renderJString k]
     , div [] [renderJString (Plain "Juice?")]
-    , div [] [text (toString result)]
+    -- , div [] [text (toString allResult)]
+    -- , ol [] (List.map
+    --           (\o -> li [] [text (toString o)])
+    --           (Result.withDefault [] allResult))
     , ol [] (List.map
               (\o -> li [] [text (toString o)])
-              (Result.withDefault [] allResult))
+              morphemes)
     ]
 
 view : Model -> Html Msg
@@ -145,7 +162,7 @@ view model =
   div []
     [ input [ value model.raw, type_ "text", placeholder "Text", onInput Raw ] []
     , button [ onClick Submit ] [ text "Submit" ]
-    , testNode
+    , testNode model.morphemes
     ]
 
 -- TESTING
@@ -155,9 +172,3 @@ kuro = """[{"language-type":"和","part-of-speech":["pronoun"],"final-sound-alte
 
 allResult : Result String Morphemes
 allResult = decodeString (list morphemeDecoder) kuro
-
-result : Result String Morpheme
-result =
-  decodeString
-    morphemeDecoder
-    """{"language-type":"和","part-of-speech":["auxiliary-verb"],"final-sound-alternation-type":"*","known?":true,"lemma-pronunciation":"タ","written-base-form":"た","lemma-reading":"タ","written-form":"た","lemma":"た","initial-sound-alternation-form":"*","final-sound-alternation-form":"*","user?":false,"conjugation-type":["auxiliary","ta"],"conjugation":["conclusive","general"],"literal":"た","initial-sound-alternation-type":"*","all-features":["助動詞","*","*","*","助動詞-タ","終止形-一般","タ","た","た","タ","た","タ","和","*","*","*","*"],"position":3,"literal-pronunciation":"タ"}"""
