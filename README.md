@@ -5,3 +5,4 @@
 ## Requirements
 - [jmdict-simplified](https://github.com/scriptin/jmdict-simplified/tree/master/build)
 - [JmdictFurigana](https://github.com/Doublevil/JmdictFurigana/)
+- [Kuromoji web service](https://github.com/fasiha/clj-kuromoji-front-end)

@@ -1,4 +1,10 @@
-import Html exposing (Html, ol, li, text, div, ruby, rt)
+import Json.Decode exposing (int, string, float, list, bool, decodeString, Decoder)
+import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
+import Html exposing (..)
+import Html.Attributes exposing (value, type_, placeholder)
+import Html.Events exposing (..)
+-- import Http
+
 import Dict exposing (Dict)
 
 type FuriganaSource = OriginalFurigana | AutoFurigana | HumanEditorFurigana
@@ -35,10 +41,123 @@ renderJString frag
     Plain s -> text s
     Furigana a b _ -> ruby [] [text a, rt [] [text b]]
 
-main : Html msg
+-- Kuromoji
+
+type alias Morpheme =
+  { literal: String
+  , literalPronunciation: String
+  , writtenForm: String
+  , writtenBaseForm: String
+  , lemma: String
+  , lemmaReading: String
+  , lemmaPronunciation: String
+  , partOfSpeech : List String
+  , conjugation: List String
+  , conjugationType: List String
+  , position: Int
+  , languageType : String
+  , initialSoundAlternationType: String
+  , initialSoundAlternationForm: String
+  , finalSoundAlternationType: String
+  , finalSoundFlternationForm: String
+  }
+
+morphemeDecoder : Decoder Morpheme
+morphemeDecoder =
+  decode Morpheme
+    |> required "literal" string
+    |> required "literal-pronunciation" string
+    |> required "written-form" string
+    |> required "written-base-form" string
+    |> required "lemma" string
+    |> required "lemma-reading" string
+    |> required "lemma-pronunciation" string
+    |> required "part-of-speech" (list string)
+    |> required "conjugation" (list string)
+    |> required "conjugation-type" (list string)
+    |> required "position" int
+    |> required "language-type" string
+    |> required "initial-sound-alternation-type" string
+    |> required "initial-sound-alternation-form" string
+    |> required "final-sound-alternation-type" string
+    |> required "final-sound-alternation-form" string
+
+type alias Morphemes = List Morpheme
+
+-- MODEL
+
+type alias Model =
+  { raw : String
+  }
+
+init : String -> (Model, Cmd Msg)
+init topic =
+  ( Model ""
+  , Cmd.none
+  )
+
+-- UPDATE
+
+type Msg
+  = Raw String
+  | Submit
+  -- | NewGif (Result Http.Error String)
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
+  case msg of
+    Raw raw -> ({ model | raw = raw }, Cmd.none)
+    Submit -> ({model | raw = "Clicked!" }, Cmd.none)
+
+-- SUBS
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  Sub.none
+
+-- MAIN
+
+main : Program Never Model Msg
 main =
+  Html.program
+    { init = init "cats"
+    , view = view
+    , update = update
+    , subscriptions = subscriptions
+    }
+
+-- VIEW
+
+testNode : Html Msg
+testNode =
   div []
     [ div [] [text (toString k)]
     , div [] [renderJString k]
     , div [] [renderJString (Plain "Juice?")]
+    , div [] [text (toString result)]
+    , ol [] (List.map
+              (\o -> li [] [text (toString o)])
+              (Result.withDefault [] allResult))
     ]
+
+view : Model -> Html Msg
+view model =
+  div []
+    [ input [ value model.raw, type_ "text", placeholder "Text", onInput Raw ] []
+    , button [ onClick Submit ] [ text "Submit" ]
+    , testNode
+    ]
+
+-- TESTING
+
+kuro : String
+kuro = """[{"language-type":"和","part-of-speech":["pronoun"],"final-sound-alternation-type":"*","known?":true,"lemma-pronunciation":"ナン","written-base-form":"何","lemma-reading":"ナニ","written-form":"何","lemma":"何","initial-sound-alternation-form":"*","final-sound-alternation-form":"*","user?":false,"conjugation-type":[],"conjugation":["uninflected"],"literal":"何","initial-sound-alternation-type":"*","all-features":["代名詞","*","*","*","*","*","ナニ","何","何","ナン","何","ナン","和","*","*","*","*"],"position":0,"literal-pronunciation":"ナン"},{"language-type":"和","part-of-speech":["verb","bound"],"final-sound-alternation-type":"*","known?":true,"lemma-pronunciation":"デキル","written-base-form":"できる","lemma-reading":"デキル","written-form":"でき","lemma":"出来る","initial-sound-alternation-form":"*","final-sound-alternation-form":"*","user?":false,"conjugation-type":["kamiichidan-verb-i-row","ka-column"],"conjugation":["continuative","general"],"literal":"でき","initial-sound-alternation-type":"*","all-features":["動詞","非自立可能","*","*","上一段-カ行","連用形-一般","デキル","出来る","でき","デキ","できる","デキル","和","*","*","*","*"],"position":1,"literal-pronunciation":"デキ"},{"language-type":"和","part-of-speech":["auxiliary-verb"],"final-sound-alternation-type":"*","known?":true,"lemma-pronunciation":"タ","written-base-form":"た","lemma-reading":"タ","written-form":"た","lemma":"た","initial-sound-alternation-form":"*","final-sound-alternation-form":"*","user?":false,"conjugation-type":["auxiliary","ta"],"conjugation":["conclusive","general"],"literal":"た","initial-sound-alternation-type":"*","all-features":["助動詞","*","*","*","助動詞-タ","終止形-一般","タ","た","た","タ","た","タ","和","*","*","*","*"],"position":3,"literal-pronunciation":"タ"},{"language-type":"記号","part-of-speech":["supplementary-symbol","period"],"final-sound-alternation-type":"*","known?":true,"lemma-pronunciation":"","written-base-form":"？","lemma-reading":"","written-form":"？","lemma":"？","initial-sound-alternation-form":"*","final-sound-alternation-form":"*","user?":false,"conjugation-type":[],"conjugation":["uninflected"],"literal":"？","initial-sound-alternation-type":"*","all-features":["補助記号","句点","*","*","*","*","","？","？","","？","","記号","*","*","*","*"],"position":4,"literal-pronunciation":""}]"""
+
+allResult : Result String Morphemes
+allResult = decodeString (list morphemeDecoder) kuro
+
+result : Result String Morpheme
+result =
+  decodeString
+    morphemeDecoder
+    """{"language-type":"和","part-of-speech":["auxiliary-verb"],"final-sound-alternation-type":"*","known?":true,"lemma-pronunciation":"タ","written-base-form":"た","lemma-reading":"タ","written-form":"た","lemma":"た","initial-sound-alternation-form":"*","final-sound-alternation-form":"*","user?":false,"conjugation-type":["auxiliary","ta"],"conjugation":["conclusive","general"],"literal":"た","initial-sound-alternation-type":"*","all-features":["助動詞","*","*","*","助動詞-タ","終止形-一般","タ","た","た","タ","た","タ","和","*","*","*","*"],"position":3,"literal-pronunciation":"タ"}"""
