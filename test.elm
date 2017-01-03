@@ -1,52 +1,44 @@
 import Html exposing (Html, ol, li, text, div, ruby, rt)
-import String
 import Dict exposing (Dict)
 
-type alias KanaString = String
-
-type alias KanjiString = String
+type FuriganaSource = OriginalFurigana | AutoFurigana | HumanEditorFurigana
 
 type JString
   = Plain String
-  | Furigana KanjiString KanaString
+  | Furigana String String FuriganaSource
 
 type alias LangId = String
 
-type alias Vocab =
-  { id: Int
-  , strings: List JString
-  , senses: Dict LangId (List String)
-  }
+type alias JmdictEntry = {id: Int, printable: JString, kanjiId: Maybe Int, kanaId: Maybe Int}
 
-type alias S2VLink =
-  { indexes: List Int
-  , vocab: Vocab
-  , stringid: Maybe Int
-  , senseid: Maybe (LangId, Int)
-  }
+type VocabSource = Jmdict JmdictEntry | MakinoTsutsui String
+-- MakinoTsutsui -> Seiichi Makino & Michio Tsutsui’s series of dictionaries
+-- starting with *A Dictionary of Basic Japanese Grammar*.
 
-type SentenceSource = TonoYamazakiMaekawa | KTS | UnknownSource
+type SentenceSource = TonoYamazakiMaekawa | KTS | UnknownSource String
+-- TonoYamazakiMaekawa -> Tono, Yamazaki, and Maekawa’s *A Frequency Dictionary
+-- of Japanese*
 
 type alias Sentence =
-  { raw: String
+  { source: SentenceSource
   , contents: List JString
+  , vocabs: List (List Int, VocabSource)
   , translations: Dict LangId (List String)
-  , vocabs: List S2VLink
-  , source: SentenceSource
   }
 
-kana : JString
-kana = Furigana "😘" "kissy"
+k : JString
+k = Furigana "😘" "kissy" OriginalFurigana
 
-renderFragment : JString -> Html msg
-renderFragment frag
+renderJString : JString -> Html msg
+renderJString frag
   = case frag of
     Plain s -> text s
-    Furigana a b -> ruby [] [text a, rt [] [text b]]
+    Furigana a b _ -> ruby [] [text a, rt [] [text b]]
 
+main : Html msg
 main =
   div []
-    [ div [] [text (toString kana)]
-    , div [] [renderFragment kana]
-    , div [] [renderFragment (Plain "Juice?")]
+    [ div [] [text (toString k)]
+    , div [] [renderJString k]
+    , div [] [renderJString (Plain "Juice?")]
     ]
