@@ -1,4 +1,5 @@
-import Json.Decode exposing (int, string, float, list, bool, decodeString, Decoder)
+import Json.Decode exposing (int, string, float, list, bool, decodeString, oneOf, andThen, map2 , field, succeed, nullable, Decoder)
+-- import Json.Decode as JD
 import Json.Decode.Pipeline exposing (decode, required, optional, hardcoded)
 import Html exposing (..)
 import Html.Attributes exposing (value, type_, placeholder)
@@ -58,6 +59,34 @@ renderMorpheme morpheme =
 
 -- KUROMOJI
 
+type alias Ruby = {ruby: String, rt: String}
+
+rubyDecoder : Decoder Ruby
+rubyDecoder =
+    map2 Ruby
+        (field "ruby" string)
+        (field "rt" string)
+
+furigana : Decoder JString
+furigana =
+    map2 Ruby
+        (field "ruby" string)
+        (field "rt" string)
+        |> andThen ruby2furi
+
+ruby2furi : Ruby -> Decoder JString
+ruby2furi r =
+    succeed (Furigana r.ruby r.rt AutoFurigana)
+
+furiganasDecoder : Decoder (List JString)
+furiganasDecoder =
+  (list (oneOf [ furigana, plain ]))
+
+plain : Decoder JString
+plain =
+    Json.Decode.map Plain string
+
+
 type alias Morpheme =
   { literal: String
   , literalPronunciation: String
@@ -71,11 +100,13 @@ type alias Morpheme =
   , conjugationType: List String
   , position: Int
   , languageType : String
+  , furigana : Maybe (List JString)
   -- , initialSoundAlternationType: String
   -- , initialSoundAlternationForm: String
   -- , finalSoundAlternationType: String
   -- , finalSoundFlternationForm: String
   }
+
 
 morphemeDecoder : Decoder Morpheme
 morphemeDecoder =
@@ -92,6 +123,7 @@ morphemeDecoder =
     |> required "conjugation-type" (list string)
     |> required "position" int
     |> required "language-type" string
+    |> required "furigana" (nullable furiganasDecoder)
     -- |> required "initial-sound-alternation-type" string
     -- |> required "initial-sound-alternation-form" string
     -- |> required "final-sound-alternation-type" string
@@ -128,13 +160,13 @@ update msg model =
     Raw raw -> ({ model | raw = raw }, Cmd.none)
     Submit -> (model, sendToParse model.raw)
     Parse (Ok morphemes) ->({ model | morphemes = morphemes}, Cmd.none)
-    Parse (Err err) -> ({ model | raw = "err" }, Cmd.none)
+    Parse (Err err) -> ({ model | raw = (toString err) }, Cmd.none)
 
 
 sendToParse : String -> Cmd Msg
 sendToParse s =
   let
-    url = "http://localhost:3600/parse/" ++ s
+    url = "http://localhost:3600/parse-furigana/" ++ s
   in
     Http.send Parse (Http.get url morphemesDecoder)
 
