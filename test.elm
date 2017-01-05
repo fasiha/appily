@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (value, type_, placeholder)
 import Html.Events exposing (..)
 import Http
-
+import Regex exposing (..)
 import Dict exposing (Dict)
 
 type FuriganaSource = OriginalFurigana | AutoFurigana | HumanEditorFurigana
@@ -41,7 +41,22 @@ renderJString frag
     Plain s -> text s
     Furigana a b _ -> ruby [] [text a, rt [] [text b]]
 
--- Kuromoji
+-- KANJI AND KANA
+
+
+-- Via xregexp
+hanRegex : Regex
+hanRegex = regex "[⺀-⺙⺛-⻳⼀-⿕々〇〡-〩〸-〻㐀-䶵一-鿕豈-舘並-龎]"
+
+renderMorpheme : Morpheme -> Html Msg
+renderMorpheme morpheme =
+  if contains hanRegex morpheme.literal then
+    renderJString (Furigana morpheme.literal morpheme.literalPronunciation AutoFurigana)
+
+  else
+    text morpheme.literal
+
+-- KUROMOJI
 
 type alias Morpheme =
   { literal: String
@@ -121,7 +136,7 @@ sendToParse s =
   let
     url = "http://localhost:3600/parse/" ++ s
   in
-    Http.send Parse (Http.get url (list morphemeDecoder))
+    Http.send Parse (Http.get url morphemesDecoder)
 
 -- SUBS
 
@@ -155,7 +170,10 @@ testNode morphemes =
     , ol [] (List.map
               (\o -> li [] [text (toString o)])
               morphemes)
-    ]
+    , ol [] (List.map
+          (\o -> li [] [renderMorpheme o])
+          morphemes)
+    ] -- renderMorpheme
 
 view : Model -> Html Msg
 view model =
