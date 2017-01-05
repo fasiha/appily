@@ -62,6 +62,11 @@ renderJString frag =
             ruby [] [ text a, rt [] [ text b ] ]
 
 
+renderJStrings : List JString -> Html msg
+renderJStrings l =
+    span [] (List.map renderJString l)
+
+
 
 -- KANJI AND KANA
 
@@ -75,10 +80,12 @@ hanRegex =
 
 renderMorpheme : Morpheme -> Html Msg
 renderMorpheme morpheme =
-    if contains hanRegex morpheme.literal then
-        renderJString (Furigana morpheme.literal morpheme.literalPronunciation AutoFurigana)
-    else
-        text morpheme.literal
+    case morpheme.furigana of
+        Nothing ->
+            text morpheme.literal
+
+        Just l ->
+            renderJStrings l
 
 
 
@@ -211,7 +218,7 @@ sendToParse : String -> Cmd Msg
 sendToParse s =
     let
         url =
-            "http://localhost:3600/parse-furigana/" ++ s
+            "http://localhost:3600/parse/" ++ s
     in
         Http.send Parse (Http.get url morphemesDecoder)
 

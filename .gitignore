@@ -1,6 +1,4 @@
 clj-kuromoji-jmdictfurigana/
-jmdictfurigana-microservice/
-kuromoji-front-end/
 data/
 elm-stuff/
 .DS_Store
