@@ -29,12 +29,14 @@ type alias JmdictEntry =
     { id : Int, printable : JString, kanjiId : Maybe Int, kanaId : Maybe Int }
 
 
+{-| MakinoTsutsui -> Seiichi Makino & Michio Tsutsui’s series of dictionaries starting with *A Dictionary of Basic Japanese Grammar*.
+-}
 type VocabSource
     = Jmdict JmdictEntry
     | MakinoTsutsui String
 
 
-{-| MakinoTsutsui -> Seiichi Makino & Michio Tsutsui’s series of dictionaries starting with *A Dictionary of Basic Japanese Grammar*.
+{-| TonoYamazakiMaekawa -> Tono, Yamazaki, and Maekawa’s *A Frequency Dictionary of Japanese*.
 -}
 type SentenceSource
     = TonoYamazakiMaekawa
@@ -42,8 +44,6 @@ type SentenceSource
     | UnknownSource String
 
 
-{-| TonoYamazakiMaekawa -> Tono, Yamazaki, and Maekawa’s *A Frequency Dictionary of Japanese*.
--}
 type alias Sentence =
     { source : SentenceSource
     , contents : List JString
@@ -118,7 +118,7 @@ ruby2furi r =
 
 furiganasDecoder : Decoder (List JString)
 furiganasDecoder =
-    (list (oneOf [ furigana, plain ]))
+    list (oneOf [ furigana, plain ])
 
 
 plain : Decoder JString
