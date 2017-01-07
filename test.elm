@@ -21,17 +21,17 @@ type JString
     | Furigana String String FuriganaSource
 
 
-type alias LangId =
+type alias Lang =
     String
 
 
 type alias JmdictEntry =
-    { id : Int, printable : JString, kanjiId : Maybe Int, kanaId : Maybe Int }
+    { id : Int, kanjiId : Maybe Int, kanaId : Maybe Int, senseId : Maybe Int }
 
 
 {-| MakinoTsutsui -> Seiichi Makino & Michio Tsutsui’s series of dictionaries starting with *A Dictionary of Basic Japanese Grammar*.
 -}
-type VocabSource
+type Vocab
     = Jmdict JmdictEntry
     | MakinoTsutsui String
 
@@ -44,11 +44,15 @@ type SentenceSource
     | UnknownSource String
 
 
+type alias VocabUsed =
+    { pos : List Int, vocab : Vocab }
+
+
 type alias Sentence =
     { source : SentenceSource
     , contents : List JString
-    , vocabs : List ( List Int, VocabSource )
-    , translations : Dict LangId (List String)
+    , vocabs : List VocabUsed
+    , translations : Dict Lang (List String)
     }
 
 
@@ -267,10 +271,6 @@ testNode morphemes =
                 morphemes
             )
         ]
-
-
-
--- renderMorpheme
 
 
 view : Model -> Html Msg
