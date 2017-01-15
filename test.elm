@@ -41,7 +41,7 @@ type Vocab
 type SentenceSource
     = TonoYamazakiMaekawa
     | KTS
-    | UnknownSource String
+    | OtherSource String
 
 
 type alias VocabUsed =
