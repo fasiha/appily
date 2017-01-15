@@ -1,4 +1,8 @@
 clj-kuromoji-jmdictfurigana/
+*.exe
 data/
 elm-stuff/
 .DS_Store
+FSharp.Data.2.3.2/
+FsUnit.1.2.1.0/
+NUnit.2.6.2/
